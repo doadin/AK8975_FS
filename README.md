@@ -22,18 +22,13 @@ This software may help people who wants to study how to control AKM's magnetic s
 The license for all code in this source code is specified in the NOTICE file.  Please, refer to this file for further details.
 
 ## Build
-To build this project, you need to download the linux driver at first from AKM's homepage.
+To build this project, uncomment your desired device from the top of Android.mk file.
 
-http://www.asahi-kasei.co.jp/akm/en/product/ak8975bc/ak8975bc.html
+	vi $(YOUR_ENV)/AK8975_FS/Android.mk
 
-Then put header file to your akmdfs directory.
+For example, if you wish to have a software for AK8975, please uncomment the following line.
 
-	cp akm8975.h $(YOUR_ENV)/AK8975_FS/akmdfs/
-
-The source code refers system header file by default, so you need to edit AK8975Driver.h file to refer local header file
-
-	- #include <linux/akm8975.h>
-	+ #include "akm8975.h"
+	export AKMD_DEVICE_TYPE=8975
 
 Type 'mm -B', then you will get two binary files, **akmdfs** and **sensors.default.so**.
 
