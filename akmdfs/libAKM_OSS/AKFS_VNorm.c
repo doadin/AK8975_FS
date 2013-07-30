@@ -15,20 +15,30 @@
  * limitations under the License.
  *
  ******************************************************************************/
-#include "AKFS_VNorm.h"
 #include "AKFS_Device.h"
+#include "AKFS_VNorm.h"
 
-/*!
+/******************************************************************************/
+/*! Normalize vector.
+  @return #AKFS_SUCCESS on success. Otherwise the return value is #AKFS_ERROR.
+  @param[in] ndata Size of raw vector buffer
+  @param[in] vdata Raw vector buffer
+  @param[in] nbuf Size of data to be buffered
+  @param[in] o Offset
+  @param[in] s Sensitivity
+  @param[in] tgt Target sensitivity
+  @param[in] nvec Size of normalized vector buffer
+  @param[out] vvec Normalized vector buffer
  */
 int16 AKFS_VbNorm(
-	const	int16	ndata,		/*!< Size of raw vector buffer */
-	const	AKFVEC	vdata[],	/*!< Raw vector buffer */
-	const	int16	nbuf,		/*!< Size of data to be buffered */
-	const	AKFVEC*	o,			/*!< Offset */
-	const	AKFVEC*	s,			/*!< Sensitivity */
-	const	AKFLOAT	tgt,		/*!< Target sensitivity */
-	const	int16	nvec,		/*!< Size of normalized vector buffer */
-			AKFVEC	vvec[]		/*!< Normalized vector buffer */
+	const	int16	ndata,
+	const	AKFVEC	vdata[],
+	const	int16	nbuf,
+	const	AKFVEC	*o,
+	const	AKFVEC	*s,
+	const	AKFLOAT	tgt,
+	const	int16	nvec,
+			AKFVEC	vvec[]
 )
 {
 	int i;
@@ -53,7 +63,7 @@ int16 AKFS_VbNorm(
 	if (AKFS_BufShift(nvec, nbuf, vvec) != AKFS_SUCCESS) {
 		return AKFS_ERROR;
 	}
-	for (i=0; i<nbuf; i++) {
+	for (i = 0; i < nbuf; i++) {
 		vvec[i].u.x = ((vdata[i].u.x - o->u.x) / (s->u.x) * (AKFLOAT)tgt);
 		vvec[i].u.y = ((vdata[i].u.y - o->u.y) / (s->u.y) * (AKFLOAT)tgt);
 		vvec[i].u.z = ((vdata[i].u.z - o->u.z) / (s->u.z) * (AKFLOAT)tgt);
@@ -62,13 +72,19 @@ int16 AKFS_VbNorm(
 	return AKFS_SUCCESS;
 }
 
-/*!
+/******************************************************************************/
+/*! Calculate an averaged vector form a given buffer.
+  @return #AKFS_SUCCESS on success. Otherwise the return value is #AKFS_ERROR.
+  @param[in] nvec Size of normalized vector buffer
+  @param[in] vvec Normalized vector buffer
+  @param[in] nave Number of average
+  @param[out] vave Averaged vector
  */
 int16 AKFS_VbAve(
-	const	int16	nvec,		/*!< Size of normalized vector buffer */
-	const	AKFVEC	vvec[],		/*!< Normalized vector buffer */
-	const	int16	nave,		/*!< Number of averaeg */
-			AKFVEC*	vave		/*!< Averaged vector */
+	const	int16	nvec,
+	const	AKFVEC	vvec[],
+	const	int16	nave,
+			AKFVEC	*vave
 )
 {
 	int i;
@@ -82,7 +98,7 @@ int16 AKFS_VbAve(
 	vave->u.x = 0;
 	vave->u.y = 0;
 	vave->u.z = 0;
-	for (i=0; i<nave; i++) {
+	for (i = 0; i < nave; i++) {
 		if ((vvec[i].u.x == AKFS_INIT_VALUE_F) ||
 			(vvec[i].u.y == AKFS_INIT_VALUE_F) ||
 			(vvec[i].u.z == AKFS_INIT_VALUE_F)) {

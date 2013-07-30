@@ -15,31 +15,24 @@
  * limitations under the License.
  *
  ******************************************************************************/
-#ifndef AKFS_INC_VNORM_H
-#define AKFS_INC_VNORM_H
+#ifndef AKFS_INC_DIRECTION_H
+#define AKFS_INC_DIRECTION_H
 
 #include "AKFS_Device.h"
 
 /***** Prototype of function **************************************************/
 AKLIB_C_API_START
-int16 AKFS_VbNorm(
-	const	int16	ndata,		/*!< Size of raw vector buffer */
-	const	AKFVEC	vdata[],	/*!< Raw vector buffer */
-	const	int16	nbuf,		/*!< Size of data to be buffered */
-	const	AKFVEC*	o,			/*!< Offset */
-	const	AKFVEC*	s,			/*!< Sensitivity */
-	const	AKFLOAT	tgt,		/*!< Target sensitivity */
-	const	int16	nvec,		/*!< Size of normalized vector buffer */
-			AKFVEC	vvec[]		/*!< Normalized vector buffer */
+int16 AKFS_Direction(
+	const	int16		nhvec,
+	const	AKFVEC		hvec[],
+	const	int16		hnave,
+	const	int16		navec,
+	const	AKFVEC		avec[],
+	const	int16		anave,
+			AKFLOAT		*azimuth,
+			AKFLOAT		*pitch,
+			AKFLOAT		*roll
 );
-
-int16 AKFS_VbAve(
-	const	int16	nvec,		/*!< Size of normalized vector buffer */
-	const	AKFVEC	vvec[],		/*!< Normalized vector buffer */
-	const	int16	nave,		/*!< Number of averaeg */
-			AKFVEC*	vave		/*!< Averaged vector */
-);
-
 AKLIB_C_API_END
 
 #endif

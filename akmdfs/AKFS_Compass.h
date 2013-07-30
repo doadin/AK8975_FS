@@ -22,23 +22,26 @@
 #include "AKFS_CSpec.h"
 
 #ifdef WIN32
-#include "AK8975_LinuxDriver.h"
+#include "AKM_LinuxDriver.h"
 #else
-#include "AK8975Driver.h"
+#include "AKFS_Driver.h"
 #endif
 
 /****************************************/
-/* Include files for AK8975 library.    */
+/* Include files for AKM OSS library.   */
 /****************************************/
-#include "AKFS_AK8975.h"
-#include "AKFS_Configure.h"
-#include "AKFS_AOC.h"
-#include "AKFS_Device.h"
-#include "AKFS_Direction.h"
-#include "AKFS_Math.h"
-#include "AKFS_VNorm.h"
+#include "./libAKM_OSS/AKFS_Configure.h"
+#include "./libAKM_OSS/AKFS_AOC.h"
+#include "./libAKM_OSS/AKFS_Decomp.h"
+#include "./libAKM_OSS/AKFS_Device.h"
+#include "./libAKM_OSS/AKFS_Direction.h"
+#include "./libAKM_OSS/AKFS_Math.h"
+#include "./libAKM_OSS/AKFS_VNorm.h"
 
 /*** Constant definition ******************************************************/
+#define AKM_MAG_SENSE			(1.0)
+#define AKM_ACC_SENSE			(720)
+#define AKM_ACC_TARGET			(9.80665f)
 
 /*** Type declaration *********************************************************/
 typedef struct _AKSENSOR_DATA{
@@ -49,42 +52,44 @@ typedef struct _AKSENSOR_DATA{
 } AKSENSOR_DATA;
 
 /*! A parameter structure. */
-typedef struct _AK8975PRMS{
-	/* Variables for Decomp8975. */
-	AKFVEC			mfv_hdata[AKFS_HDATA_SIZE];
-	uint8vec		mi_asa;
-	uint8			mi_st;
+/* ix*_ : x-bit integer */
+/* f**_ : floating value */
+/* p**_ : pointer */
+/* e**_ : enum */
+/* *s*_ : struct */
+/* *v*_ : vector (special type of struct) */
+/* **a_ : array */
+typedef struct _AKMPRMS{
+
+	/* Variables for Decomp. */
+	AKFVEC			fva_hdata[AKFS_HDATA_SIZE];
+	uint8vec		i8v_asa;
 
 	/* Variables forAOC. */
-	AKFS_AOC_VAR	m_aocv;
+	AKFS_AOC_VAR	s_aocv;
 
 	/* Variables for Magnetometer buffer. */
-	AKFVEC			mfv_hvbuf[AKFS_HDATA_SIZE];
-	AKFVEC			mfv_ho;
-	AKFVEC			mfv_hs;
-	AKFS_PATNO		m_hpat;
+	AKFVEC			fva_hvbuf[AKFS_HDATA_SIZE];
+	AKFVEC			fv_ho;
+	AKFVEC			fv_hs;
+	AKFS_PATNO		e_hpat;
 
 	/* Variables for Accelerometer buffer. */
-	AKFVEC			mfv_adata[AKFS_ADATA_SIZE];
-	AKFVEC			mfv_avbuf[AKFS_ADATA_SIZE];
-	AKFVEC			mfv_ao;
-	AKFVEC			mfv_as;
+	AKFVEC			fva_avbuf[AKFS_ADATA_SIZE];
+	AKFVEC			fv_ao;
+	AKFVEC			fv_as;
 
 	/* Variables for Direction. */
-	int16			mi_hnaveD;
-	int16			mi_anaveD;
-	AKFLOAT			mf_azimuth;
-	AKFLOAT			mf_pitch;
-	AKFLOAT			mf_roll;
+	AKFLOAT			f_azimuth;
+	AKFLOAT			f_pitch;
+	AKFLOAT			f_roll;
 
 	/* Variables for vector output */
-	int16			mi_hnaveV;
-	int16			mi_anaveV;
-	AKFVEC			mfv_hvec;
-	AKFVEC			mfv_avec;
-	int16			mi_hstatus;
+	AKFVEC			fv_hvec;
+	AKFVEC			fv_avec;
+	int16			i16_hstatus;
 
-} AK8975PRMS;
+} AKMPRMS;
 
 #endif
 

@@ -32,19 +32,13 @@
 typedef enum _MODE {
 	MODE_ERROR,			/*!< Error */
 	MODE_Measure,		/*!< Measurement */
-	MODE_SelfTest,		/*!< Self-test */
 	MODE_Quit			/*!< Quit */
 } MODE;
 
 /*** Prototype of function ****************************************************/
-/*
-	Disp_   : Display messages.
-	Menu_   : Display menu (two or more selection) and wait for user input.
- */
-
 void Disp_StartMessage(void);
 void Disp_EndMessage(int ret);
-void Disp_Result(int buf[YPR_DATA_SIZE]);
+void Disp_Result(int buf[]);
 
 MODE Menu_Main(void);
 

@@ -35,7 +35,8 @@ __BEGIN_DECLS
 
 #define ID_A  (0)
 #define ID_M  (1)
-#define ID_O  (2)
+#define ID_OR (2)
+#define ID_RV (3)
 
 /*****************************************************************************/
 
@@ -45,36 +46,44 @@ __BEGIN_DECLS
 
 /*****************************************************************************/
 
-/* For ADXL346 */
+/* For Accelerometer */
 #define EVENT_TYPE_ACCEL_X          ABS_X
 #define EVENT_TYPE_ACCEL_Y          ABS_Y
 #define EVENT_TYPE_ACCEL_Z          ABS_Z
-#define EVENT_TYPE_ACCEL_STATUS     ABS_THROTTLE
+#define EVENT_TYPE_ACCEL_STATUS     ABS_RX
 
-/* For AK8975 */
-#define EVENT_TYPE_MAGV_X           ABS_RX
-#define EVENT_TYPE_MAGV_Y           ABS_RY
-#define EVENT_TYPE_MAGV_Z           ABS_RZ
+/* For Magnetometer */
+#define EVENT_TYPE_MAGV_X           ABS_RY
+#define EVENT_TYPE_MAGV_Y           ABS_RZ
+#define EVENT_TYPE_MAGV_Z           ABS_THROTTLE
 #define EVENT_TYPE_MAGV_STATUS      ABS_RUDDER
 
-/* Fro AKM Algorithm */
-#define EVENT_TYPE_YAW              ABS_HAT0X
-#define EVENT_TYPE_PITCH            ABS_HAT0Y
-#define EVENT_TYPE_ROLL             ABS_HAT1X
-#define EVENT_TYPE_ORIENT_STATUS    ABS_HAT1Y
+/* Fusion Orientaion */
+#define EVENT_TYPE_YAW              ABS_HAT0Y
+#define EVENT_TYPE_PITCH            ABS_HAT1X
+#define EVENT_TYPE_ROLL             ABS_HAT1Y
 
+/* Fusion Rotation Vector */
+#define EVENT_TYPE_ROTVEC_X         ABS_TILT_X
+#define EVENT_TYPE_ROTVEC_Y         ABS_TILT_Y
+#define EVENT_TYPE_ROTVEC_Z         ABS_TOOL_WIDTH
+#define EVENT_TYPE_ROTVEC_W			ABS_VOLUME
+
+#define CONVERT_Q14					(1.0f / 16384.0f)
+#define CONVERT_Q16					(1.0f / 65536.0f)
+#define CONVERT_AKM_G				(GRAVITY_EARTH / 720.0f)
 
 /* conversion of acceleration data to SI units (m/s^2) */
 /* 720 LSB = 1G */
-#define LSG                         (256.0f)
 #define AKSC_LSG					(720.0f)
-#define CONVERT_A                   (GRAVITY_EARTH / LSG)
-
+#define CONVERT_A					CONVERT_AKM_G
 /* conversion of magnetic data to uT units */
-#define CONVERT_M                   (0.06f)
+#define CONVERT_M					(0.06f)
 
-/* conversion of orientation data to degree units */
-#define CONVERT_O                   (0.015625f)
+/* conversion of orientation data (Q6) to degree units */
+#define CONVERT_OR					(1.0f / 64.0f)
+/* conversion of rotation vector (Q14) data to float */
+#define CONVERT_RV					CONVERT_Q14
 
 #define SENSOR_STATE_MASK           (0x7FFF)
 

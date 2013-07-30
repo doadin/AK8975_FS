@@ -23,9 +23,8 @@
  */
 void Disp_StartMessage(void)
 {
-	LOGI("AK8975 Daemon for Open Source v20120329.");
-	LOGI("Debug: %s", ((ENABLE_AKMDEBUG)?("ON"):("OFF")));
-	LOGI("Debug level: %d", DBG_LEVEL);
+	ALOGI("AKMD2 for Open Source v20130628.");
+	ALOGI("Debug: %s", ((ENABLE_AKMDEBUG)?("ON"):("OFF")));
 }
 
 /*!
@@ -33,24 +32,20 @@ void Disp_StartMessage(void)
  */
 void Disp_EndMessage(int ret)
 {
-	LOGI("AK8975 for Android end (%d).", ret);
+	ALOGI("AKMD2 for Android end (%d).", ret);
 }
 
 /*!
  Print result
  */
-void Disp_Result(int buf[YPR_DATA_SIZE])
+void Disp_Result(int buf[])
 {
-	AKMDEBUG(DBG_LEVEL1,
-		"Flag=%d\n", buf[0]);
-	AKMDEBUG(DBG_LEVEL1,
-		"Acc(%d):%8.2f, %8.2f, %8.2f\n",
+	AKMDEBUG(AKMDATA_CONSOLE, "Flag=%d\n", buf[0]);
+	AKMDEBUG(AKMDATA_CONSOLE, "Acc(%d):%8.2f, %8.2f, %8.2f\n",
 		buf[4], REVERT_ACC(buf[1]), REVERT_ACC(buf[2]), REVERT_ACC(buf[3]));
-	AKMDEBUG(DBG_LEVEL1,
-		"Mag(%d):%8.2f, %8.2f, %8.2f\n",
+	AKMDEBUG(AKMDATA_CONSOLE, "Mag(%d):%8.2f, %8.2f, %8.2f\n",
 		buf[8], REVERT_MAG(buf[5]), REVERT_MAG(buf[6]), REVERT_MAG(buf[7]));
-	AKMDEBUG(DBG_LEVEL1,
-		"Ori(%d)=%8.2f, %8.2f, %8.2f\n",
+	AKMDEBUG(AKMDATA_CONSOLE, "Ori(%d)=%8.2f, %8.2f, %8.2f\n",
 		buf[8], REVERT_ORI(buf[9]), REVERT_ORI(buf[10]), REVERT_ORI(buf[11]));
 }
 
@@ -63,23 +58,20 @@ MODE Menu_Main(void)
 	char msg[20];
 	memset(msg, 0, sizeof(msg));
 
-	AKMDEBUG(DBG_LEVEL1,
-	" --------------------  AK8975 Console Application -------------------- \n"
+	AKMDEBUG(AKMDATA_CONSOLE,
+	" --------------------  AKM Daemon Application -------------------- \n"
 	"   1. Start measurement. \n"
-	"   2. Self-test. \n"
 	"   Q. Quit application. \n"
-	" --------------------------------------------------------------------- \n"
+	" ----------------------------------------------------------------- \n"
 	" Please select a number.\n"
 	"   ---> ");
 	fgets(msg, 10, stdin);
-	AKMDEBUG(DBG_LEVEL1, "\n");
+	AKMDEBUG(AKMDATA_CONSOLE, "\n");
 
 	/* BUG : If 2-digits number is input, */
 	/*    only the first character is compared. */
 	if (!strncmp(msg, "1", 1)) {
 		return MODE_Measure;
-	} else if (!strncmp(msg, "2", 1)) {
-		return MODE_SelfTest;
 	} else if (strncmp(msg, "Q", 1) == 0 || strncmp(msg, "q", 1) == 0) {
 		return MODE_Quit;
 	} else {

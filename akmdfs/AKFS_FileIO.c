@@ -29,50 +29,57 @@
 /*!
  Load parameters from file which is specified with #path.  This function reads 
   data from a beginning of the file line by line, and check parameter name 
-  sequentially. In otherword, this function depends on the order of eache 
+  sequentially. In other words, this function depends on the order of eache 
   parameter described in the file.
- @return If function fails, the return value is #AKM_FAIL. When function fails,
+ @return If function fails, the return value is #AKM_ERROR. When function fails,
   the output is undefined. Therefore, parameters which are possibly overwritten
   by this function should be initialized again. If function succeeds, the
   return value is #AKM_SUCCESS.
- @param[out] prms A pointer to #AK8975PRMS structure. Loaded parameter is
+ @param[out] prms A pointer to #AKMPRMS structure. Loaded parameter is
   stored to the member of this structure.
  @param[in] path A path to the setting file.
  */
-int16 AKFS_LoadParameters(AK8975PRMS * prms, const char* path)
+int16 AKFS_LoadParameters(AKMPRMS * prms, const char* path)
 {
 	int16 ret;
 	char buf[LOAD_BUF_SIZE];
+	AKFLOAT tmpF;
 	FILE *fp = NULL;
 
 	/* Open setting file for read. */
 	if ((fp = fopen(path, "r")) == NULL) {
 		AKMERROR_STR("fopen");
-		return AKM_FAIL;
+		return AKM_ERROR;
 	}
 
 	ret = 1;
 
 	/* Load data to HO */
-	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &prms->mfv_ho.u.x) != 2) {
+	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &tmpF) != 2) {
 		ret = 0;
 	} else {
 		if (strncmp(buf, "HO.x", sizeof(buf)) != 0) {
 			ret = 0;
+		} else {
+			prms->fv_ho.u.x = tmpF;
 		}
 	}
-	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &prms->mfv_ho.u.y) != 2) {
+	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &tmpF) != 2) {
 		ret = 0;
 	} else {
 		if (strncmp(buf, "HO.y", sizeof(buf)) != 0) {
 			ret = 0;
+		} else {
+			prms->fv_ho.u.y = tmpF;
 		}
 	}
-	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &prms->mfv_ho.u.z) != 2) {
+	if (fscanf(fp, AKFS_SCANF_FORMAT, buf, &tmpF) != 2) {
 		ret = 0;
 	} else {
 		if (strncmp(buf, "HO.z", sizeof(buf)) != 0) {
 			ret = 0;
+		} else {
+			prms->fv_ho.u.z = tmpF;
 		}
 	}
 
@@ -83,7 +90,7 @@ int16 AKFS_LoadParameters(AK8975PRMS * prms, const char* path)
 
 	if (ret == 0) {
 		AKMERROR;
-		return AKM_FAIL;
+		return AKM_ERROR;
 	}
 
 	return AKM_SUCCESS;
@@ -92,14 +99,14 @@ int16 AKFS_LoadParameters(AK8975PRMS * prms, const char* path)
 /*!
  Save parameters to file which is specified with #path. This function saves 
   variables when the offsets of magnetic sensor estimated successfully.
- @return If function fails, the return value is #AKM_FAIL. When function fails,
+ @return If function fails, the return value is #AKM_ERROR. When function fails,
   the parameter file may collapsed. Therefore, the parameters file should be
   discarded. If function succeeds, the return value is #AKM_SUCCESS.
- @param[out] prms A pointer to #AK8975PRMS structure. Member variables are
+ @param[out] prms A pointer to #AKMPRMS structure. Member variables are
   saved to the parameter file.
  @param[in] path A path to the setting file.
  */
-int16 AKFS_SaveParameters(AK8975PRMS *prms, const char* path)
+int16 AKFS_SaveParameters(AKMPRMS *prms, const char* path)
 {
 	int16 ret = 1;
 	FILE *fp;
@@ -107,13 +114,13 @@ int16 AKFS_SaveParameters(AK8975PRMS *prms, const char* path)
 	/*Open setting file for write. */
 	if ((fp = fopen(path, "w")) == NULL) {
 		AKMERROR_STR("fopen");
-		return AKM_FAIL;
+		return AKM_ERROR;
 	}
 
 	/* Save data to HO */
-	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.x", prms->mfv_ho.u.x) < 0) { ret = 0; }
-	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.y", prms->mfv_ho.u.y) < 0) { ret = 0; }
-	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.z", prms->mfv_ho.u.z) < 0) { ret = 0; }
+	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.x", prms->fv_ho.u.x) < 0) { ret = 0; }
+	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.y", prms->fv_ho.u.y) < 0) { ret = 0; }
+	if (fprintf(fp, AKFS_PRINTF_FORMAT, "HO.z", prms->fv_ho.u.z) < 0) { ret = 0; }
 
 	if (fclose(fp) != 0) {
 		AKMERROR_STR("fclose");
@@ -122,7 +129,7 @@ int16 AKFS_SaveParameters(AK8975PRMS *prms, const char* path)
 
 	if (ret == 0) {
 		AKMERROR;
-		return AKM_FAIL;
+		return AKM_ERROR;
 	}
 
 	return AKM_SUCCESS;

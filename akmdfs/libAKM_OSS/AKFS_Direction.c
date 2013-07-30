@@ -15,49 +15,67 @@
  * limitations under the License.
  *
  ******************************************************************************/
+#include "AKFS_Device.h"
 #include "AKFS_Direction.h"
 #include "AKFS_VNorm.h"
 #include "AKFS_Math.h"
 
-/*
+/******************************************************************************/
+/* About definition of coordinate system and calculated value.
   Coordinate system is right-handed.
   X-Axis: from left to right.
   Y-Axis: from bottom to top.
   Z-Axis: from reverse to obverse.
 
-  azimuth: Rotaion around Z axis, with positive values 
-  	when y-axis moves toward the x-axis.
+  azimuth: Rotation around Z axis, with positive values
+    when y-axis moves toward the x-axis.
   pitch: Rotation around X axis, with positive values
-  	when z-axis moves toward the y-axis.
+    when z-axis moves toward the y-axis.
   roll: Rotation around Y axis, with positive values
-  	when x-axis moves toward the z-axis.
+    when x-axis moves toward the z-axis.
 */
 
-/*
-   This function is used internaly, so output is RADIAN!
+
+/******************************************************************************/
+/*! This function is used internally, so output is RADIAN!
+  @return #AKFS_SUCCESS on success. Otherwise the return value is #AKFS_ERROR.
+  @param[in] avec
+  @param[out] pitch
+  @param[out] roll
  */
-static void AKFS_Angle(
-	const	AKFVEC*		avec,
-			AKFLOAT*	pitch,	/* radian */
-			AKFLOAT*	roll	/* radian */
+static int16 AKFS_Angle(
+	const	AKFVEC		*avec,
+			AKFLOAT		*pitch,	/* radian */
+			AKFLOAT		*roll	/* radian */
 )
 {
 	AKFLOAT	av;	/* Size of vector */
 
 	av = AKFS_SQRT((avec->u.x)*(avec->u.x) + (avec->u.y)*(avec->u.y) + (avec->u.z)*(avec->u.z));
 
+	if (av < AKFS_EPSILON) {
+		return AKFS_ERROR;
+	}
+
 	*pitch = AKFS_ASIN(-(avec->u.y) / av);
 	*roll  = AKFS_ASIN((avec->u.x) / av);
+
+	return AKFS_SUCCESS;
 }
 
-/*
-   This function is used internaly, so output is RADIAN!
+/******************************************************************************/
+/*! This function is used internally, so output is RADIAN!
+  @return None
+  @param[in] hvec
+  @param[in] pitch
+  @param[in] roll
+  @param[out] azimuth
  */
 static void AKFS_Azimuth(
-	const	AKFVEC*		hvec,
+	const	AKFVEC		*hvec,
 	const	AKFLOAT		pitch,	/* radian */
 	const	AKFLOAT		roll,	/* radian */
-			AKFLOAT*	azimuth	/* radian */
+			AKFLOAT		*azimuth	/* radian */
 )
 {
 	AKFLOAT sinP; /* sin value of pitch angle */
@@ -79,6 +97,19 @@ static void AKFS_Azimuth(
 	*azimuth = AKFS_ATAN2(Yh, Xh);
 }
 
+/******************************************************************************/
+/*! Output is DEGREE!
+  @return #AKFS_SUCCESS on success. Otherwise the return value is #AKFS_ERROR.
+  @param[in] nhvec
+  @param[in] hvec
+  @param[in] hnave
+  @param[in] navec
+  @param[in] avec
+  @param[in] anave
+  @param[out] azimuth
+  @param[out] pitch
+  @param[out] roll
+ */
 int16 AKFS_Direction(
 	const	int16		nhvec,
 	const	AKFVEC		hvec[],
@@ -86,9 +117,9 @@ int16 AKFS_Direction(
 	const	int16		navec,
 	const	AKFVEC		avec[],
 	const	int16		anave,
-			AKFLOAT*	azimuth,
-			AKFLOAT*	pitch,
-			AKFLOAT*	roll
+			AKFLOAT		*azimuth,
+			AKFLOAT		*pitch,
+			AKFLOAT		*roll
 )
 {
 	AKFVEC have, aave;
@@ -113,7 +144,9 @@ int16 AKFS_Direction(
 	}
 
 	/* calculate pitch and roll */
-	AKFS_Angle(&aave, &pitchRad, &rollRad);
+	if (AKFS_Angle(&aave, &pitchRad, &rollRad) != AKFS_SUCCESS) {
+		return AKFS_ERROR;
+	}
 
 	/* calculate azimuth */
 	AKFS_Azimuth(&have, pitchRad, rollRad, &azimuthRad);

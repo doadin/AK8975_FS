@@ -45,7 +45,8 @@ protected:
 
     int open_device();
     int close_device();
-	int write_int(char const *path, int value);
+
+	/* AKM IF */
 	int write_sys_attribute(
 		char const *path, char const *value, int bytes);
 
@@ -59,14 +60,8 @@ public:
     virtual int readEvents(sensors_event_t* data, int count) = 0;
     virtual bool hasPendingEvents() const;
     virtual int getFd() const;
-
     virtual int setDelay(int32_t handle, int64_t ns);
-    virtual int64_t getDelay(int32_t handle);
-
-	/* When this function is called, increments the reference counter. */
     virtual int setEnable(int32_t handle, int enabled) = 0;
-	/* It returns the number of reference. */
-    virtual int getEnable(int32_t handle) = 0;
 };
 
 /*****************************************************************************/

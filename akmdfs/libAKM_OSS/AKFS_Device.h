@@ -52,26 +52,26 @@ typedef	float			AKFLOAT;
 /* Treat maximum value as initial value */
 #define AKFS_INIT_VALUE_F	AKFS_FMAX
 
-/***** Vector *****/
-typedef union _uint8vec{
+/***** Vector ****************************************************************/
+typedef union _uint8vec {
 	struct {
 		uint8	x;
 		uint8	y;
 		uint8	z;
-	}u;
+	} u;
 	uint8	v[3];
 } uint8vec;
 
-typedef union _AKFVEC{
+typedef union _AKFVEC {
 	struct {
 		AKFLOAT x;
 		AKFLOAT y;
 		AKFLOAT z;
-	}u;
+	} u;
 	AKFLOAT	v[3];
 } AKFVEC;
 
-/***** Layout pattern *****/
+/***** Layout pattern ********************************************************/
 typedef enum _AKFS_PATNO {
 	PAT_INVALID = 0,
 	PAT1,	/* obverse: 1st pin is right down */
@@ -98,8 +98,13 @@ int16 AKFS_BufShift(
 );
 
 int16 AKFS_Rotate(
-	const   AKFS_PATNO  pat,
-			AKFVEC*     vec
+	const   AKFS_PATNO	pat,
+			AKFVEC		*vec
+);
+
+int16 AKFS_RotateMat(
+	const   int16		layout[3][3],
+			AKFVEC		*vec
 );
 AKLIB_C_API_END
 

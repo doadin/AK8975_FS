@@ -15,36 +15,44 @@
  * limitations under the License.
  *
  ******************************************************************************/
-#ifndef AKFS_INC_AK8975_H
-#define AKFS_INC_AK8975_H
+#ifndef AKFS_INC_DECOMP_H
+#define AKFS_INC_DECOMP_H
 
 #include "AKFS_Device.h"
 
 /***** Constant definition ****************************************************/
-#define AK8975_BDATA_SIZE			8
+#if defined(AKM_DEVICE_AK8963)
+#define AKM_SENSITIVITY			0.15f
+#define AKM_ST_ERROR(st)		(((st)&0x19) != 0x11)
+#define AKM_HDATA_CONVERTER(data, asa)			\
+	(AKFLOAT)(((data)*(((asa)/256.0f) + 0.5f)))
 
-#define AK8975_HSENSE_DEFAULT		1
-#define AK8975_HSENSE_TARGET		0.3f
-#define AK8975_ASENSE_DEFAULT		720
-#define AK8975_ASENSE_TARGET		9.80665f
+#elif defined(AKM_DEVICE_AK8975)
+#define AKM_SENSITIVITY			0.3f
+#define AKM_ST_ERROR(st)		(((st)&0x09) != 0x01)
+#define AKM_HDATA_CONVERTER(data, asa)			\
+	(AKFLOAT)(((data)*(((asa)/256.0f) + 0.5f)))
 
-#define AK8975_HDATA_CONVERTER(hi, low, asa) \
-	(AKFLOAT)((int16)((((uint16)(hi))<<8)+(uint16)(low))*(((asa)/256.0f) + 0.5f))
+#elif defined(AKM_DEVICE_AK09911)
+#define AKM_SENSITIVITY			0.6f
+#define AKM_ST_ERROR(st)		(((st)&0x09) != 0x01)
+#define AKM_HDATA_CONVERTER(data, asa)			\
+	(AKFLOAT)(((data)*(((asa)/256.0f) + 0.5f)))
 
-#define AK8975_ST_ERROR(st)   (((st)&0x09) != 0x01)
+#endif
+
 
 /***** Type declaration *******************************************************/
 
 /***** Prototype of function **************************************************/
 AKLIB_C_API_START
-int16 AKFS_DecompAK8975(
+int16 AKFS_Decomp(
 	const	int16		mag[3],
 	const	int16		status,
-	const	uint8vec*	asa,
+	const	uint8vec	*asa,
 	const	int16		nhdata,
 			AKFVEC		hdata[]
 );
 AKLIB_C_API_END
 
 #endif
-

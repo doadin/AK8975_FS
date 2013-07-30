@@ -22,7 +22,7 @@
 #include <dirent.h>
 #include <sys/select.h>
 
-#include <cutils/log.h>
+#include "AKMLog.h"
 
 #include <linux/input.h>
 
@@ -53,7 +53,7 @@ SensorBase::~SensorBase() {
 int SensorBase::open_device() {
     if (dev_fd<0 && dev_name) {
         dev_fd = open(dev_name, O_RDONLY);
-        LOGE_IF(dev_fd<0, "Couldn't open %s (%s)", dev_name, strerror(errno));
+        ALOGE_IF(dev_fd<0, "Couldn't open %s (%s)", dev_name, strerror(errno));
     }
     return 0;
 }
@@ -73,14 +73,14 @@ int SensorBase::write_sys_attribute(
 
 	fd = open(path, O_WRONLY);
     if (fd < 0) {
-        LOGE("SensorBase: write_attr failed to open %s (%s)",
+        ALOGE("SensorBase::write_attr failed to open %s (%s)",
 			path, strerror(errno));
         return -1;
 	}
 
     amt = write(fd, value, bytes);
 	amt = ((amt == -1) ? -errno : 0);
-	LOGE_IF(amt < 0, "SensorBase: write_int failed to write %s (%s)",
+	ALOGE_IF(amt < 0, "SensorBase::write_attr failed to write %s (%s)",
 		path, strerror(errno));
     close(fd);
 	return amt;
@@ -94,10 +94,6 @@ int SensorBase::getFd() const {
 }
 
 int SensorBase::setDelay(int32_t handle, int64_t ns) {
-    return 0;
-}
-
-int64_t SensorBase::getDelay(int32_t handle) {
     return 0;
 }
 
@@ -119,26 +115,30 @@ int SensorBase::openInput(const char* inputName) {
     char *filename;
     DIR *dir;
     struct dirent *de;
+	size_t ren;
     dir = opendir(dirname);
-    if(dir == NULL)
+    if(dir == NULL){
         return -1;
-    strcpy(devname, dirname);
-    filename = devname + strlen(devname);
+	}
+    strncpy(devname, dirname, PATH_MAX);
+    filename = devname + strnlen(devname, PATH_MAX);
     *filename++ = '/';
+	ren = PATH_MAX - strnlen(devname, PATH_MAX);
     while((de = readdir(dir))) {
         if(de->d_name[0] == '.' &&
                 (de->d_name[1] == '\0' ||
-                        (de->d_name[1] == '.' && de->d_name[2] == '\0')))
+                        (de->d_name[1] == '.' && de->d_name[2] == '\0'))){
             continue;
-        strcpy(filename, de->d_name);
+		}
+        strncpy(filename, de->d_name, ren);
         fd = open(devname, O_RDONLY);
         if (fd>=0) {
             char name[80];
             if (ioctl(fd, EVIOCGNAME(sizeof(name) - 1), &name) < 1) {
                 name[0] = '\0';
             }
-            if (!strcmp(name, inputName)) {
-                strcpy(input_name, filename);
+            if (!strncmp(name, inputName, 80)) {
+                strncpy(input_name, filename, PATH_MAX);
                 break;
             } else {
                 close(fd);
@@ -147,6 +147,6 @@ int SensorBase::openInput(const char* inputName) {
         }
     }
     closedir(dir);
-    LOGE_IF(fd<0, "couldn't find '%s' input device", inputName);
+    ALOGE_IF(fd<0, "couldn't find '%s' input device", inputName);
     return fd;
 }

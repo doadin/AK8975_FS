@@ -15,30 +15,39 @@
  * limitations under the License.
  *
  ******************************************************************************/
-#include "AKFS_AK8975.h"
+#ifndef AKFS_INC_AOC_H
+#define AKFS_INC_AOC_H
+
 #include "AKFS_Device.h"
 
-/*!
- */
-int16 AKFS_DecompAK8975(
-	const	int16		mag[3],
-	const	int16		status,
-	const	uint8vec*	asa,
-	const	int16		nhdata,
-			AKFVEC		hdata[]
-)
-{
-	/* put st1 and st2 value */
-	if (AK8975_ST_ERROR(status)) {
-		return AKFS_ERROR;
-	}
+/***** Constant definition ****************************************************/
+#define AKFS_HBUF_SIZE	20
+#define AKFS_HOBUF_SIZE	4
+#define AKFS_HR_TH		10
+#define AKFS_HO_TH		0.15
 
-	/* magnetic */
-	AKFS_BufShift(nhdata, 1, hdata);
-	hdata[0].u.x = mag[0] * (((asa->u.x)/256.0f) + 0.5f);
-	hdata[0].u.y = mag[1] * (((asa->u.y)/256.0f) + 0.5f);
-	hdata[0].u.z = mag[2] * (((asa->u.z)/256.0f) + 0.5f);
+/***** Macro definition *******************************************************/
 
-	return AKFS_SUCCESS;
-}
+/***** Type declaration *******************************************************/
+typedef struct _AKFS_AOC_VAR{
+	AKFVEC		hbuf[AKFS_HBUF_SIZE];
+	AKFVEC		hobuf[AKFS_HOBUF_SIZE];
+	AKFLOAT		hraoc;
+} AKFS_AOC_VAR;
+
+/***** Prototype of function **************************************************/
+AKLIB_C_API_START
+int16 AKFS_AOC(
+			AKFS_AOC_VAR	*haocv,
+	const	AKFVEC			*hdata,
+			AKFVEC			*ho
+);
+
+void AKFS_InitAOC(
+			AKFS_AOC_VAR	*haocv
+);
+
+AKLIB_C_API_END
+
+#endif
 

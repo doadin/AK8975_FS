@@ -16,118 +16,149 @@
  *
  ******************************************************************************/
 #include "AKFS_Common.h"
-#include "AKFS_Disp.h"
+#include "AKFS_Compass.h"
 #include "AKFS_FileIO.h"
+#include "AKFS_Measure.h"
 #include "AKFS_APIs.h"
 
-#ifdef WIN32
-#include "AK8975_LinuxDriver.h"
-#endif
-
-static AK8975PRMS g_prms;
-
-/*!
-  Initialize library. At first, 0 is set to all parameters.  After that, some
-  parameters, which should not be 0, are set to specific value. Some of initial
-  values can be customized by editing the file \c "AKFS_CSpec.h".
-  @return The return value is #AKM_SUCCESS.
+/******************************************************************************/
+/*! Initialize #AKMPRMS structure and make APIs ready to use. This function
+  must be called before application uses any APIs in this file.  If #AKMPRMS
+  are already initialized, this function discards all existing data. When APIs
+  are not used anymore, #AKM_Release function must be called at the end.
+  When this function succeeds, form factor number is set to 0.
+  @return #AKM_SUCCESS on success. #AKM_ERROR if an error occurred.
+  @param[in/out] mem A pointer to a handler.
   @param[in] hpat Specify a layout pattern number.  The number is determined
   according to the mount orientation of the magnetometer.
   @param[in] regs[3] Specify the ASA values which are read out from
   fuse ROM.  regs[0] is ASAX, regs[1] is ASAY, regs[2] is ASAZ.
  */
 int16 AKFS_Init(
+			void		*mem,
 	const	AKFS_PATNO	hpat,
 	const	uint8		regs[]
 )
 {
-	AKMDATA(AKMDATA_DUMP, "%s: hpat=%d, r[0]=0x%02X, r[1]=0x%02X, r[2]=0x%02X\n",
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
+	AKMDEBUG(AKMDATA_DUMP, "%s: hpat=%d, r[0]=0x%02X, r[1]=0x%02X, r[2]=0x%02X\n",
 		__FUNCTION__, hpat, regs[0], regs[1], regs[2]);
 
-	/* Set 0 to the AK8975 structure. */
-	memset(&g_prms, 0, sizeof(AK8975PRMS));
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
+
+	/* Clear all data. */
+	memset(prms, 0, sizeof(AKMPRMS));
 
 	/* Sensitivity */
-	g_prms.mfv_hs.u.x = AK8975_HSENSE_DEFAULT;
-	g_prms.mfv_hs.u.y = AK8975_HSENSE_DEFAULT;
-	g_prms.mfv_hs.u.z = AK8975_HSENSE_DEFAULT;
-	g_prms.mfv_as.u.x = AK8975_ASENSE_DEFAULT;
-	g_prms.mfv_as.u.y = AK8975_ASENSE_DEFAULT;
-	g_prms.mfv_as.u.z = AK8975_ASENSE_DEFAULT;
-
-	/* Initialize variables that initial value is not 0. */
-	g_prms.mi_hnaveV = CSPEC_HNAVE_V;
-	g_prms.mi_hnaveD = CSPEC_HNAVE_D;
-	g_prms.mi_anaveV = CSPEC_ANAVE_V;
-	g_prms.mi_anaveD = CSPEC_ANAVE_D;
+	prms->fv_hs.u.x = AKM_MAG_SENSE;
+	prms->fv_hs.u.y = AKM_MAG_SENSE;
+	prms->fv_hs.u.z = AKM_MAG_SENSE;
+	prms->fv_as.u.x = AKM_ACC_SENSE;
+	prms->fv_as.u.y = AKM_ACC_SENSE;
+	prms->fv_as.u.z = AKM_ACC_SENSE;
 
 	/* Copy ASA values */
-	g_prms.mi_asa.u.x = regs[0];
-	g_prms.mi_asa.u.y = regs[1];
-	g_prms.mi_asa.u.z = regs[2];
+	prms->i8v_asa.u.x = regs[0];
+	prms->i8v_asa.u.y = regs[1];
+	prms->i8v_asa.u.z = regs[2];
 
 	/* Copy layout pattern */
-	g_prms.m_hpat = hpat;
+	prms->e_hpat = hpat;
 
 	return AKM_SUCCESS;
 }
 
-/*!
-  Release resources. This function is for future expansion.
-  @return The return value is #AKM_SUCCESS.
+/******************************************************************************/
+/*! Release allocated memory. This function must be called at the end of using
+  APIs. Currently this function is empty.
+  @return None
+  @param[in/out] mem A pointer to a handler.
  */
-int16 AKFS_Release(void)
+void AKFS_Release(void *mem)
 {
-	return AKM_SUCCESS;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return;
+	}
+#endif
+	/* Do nothing */
 }
 
-/*
-  This function is called just before a measurement sequence starts.
-  This function reads parameters from file, then initializes algorithm
-  parameters.
+/******************************************************************************/
+/* This function is called just before a measurement sequence starts.
+  Load parameters from a file and initialize library. This function must be
+  called when a sequential measurement thread boots up.
   @return The return value is #AKM_SUCCESS.
-  @param[in] path Specify a path to the settings file.
+  @param[in/out] mem A pointer to a handler.
+  @param[in] path The path to a setting file to be read out. The path name
+  should be terminated with NULL.
  */
-int16 AKFS_Start(
-	const char* path
-)
+int16 AKFS_Start(void *mem, const char *path)
 {
-	AKMDATA(AKMDATA_DUMP, "%s: path=%s\n", __FUNCTION__, path);
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL || path == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
+	AKMDEBUG(AKMDATA_DUMP, "%s: path=%s\n", __FUNCTION__, path);
+
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
 
 	/* Read setting files from a file */
-	if (AKFS_LoadParameters(&g_prms, path) != AKM_SUCCESS) {
-		AKMERROR_STR("AKFS_Load");
+	if (AKFS_LoadParameters(prms, path) != AKM_SUCCESS) {
+		AKMERROR_STR("AKFS_LoadParameters");
 	}
 
 	/* Initialize buffer */
-	AKFS_InitBuffer(AKFS_HDATA_SIZE, g_prms.mfv_hdata);
-	AKFS_InitBuffer(AKFS_HDATA_SIZE, g_prms.mfv_hvbuf);
-	AKFS_InitBuffer(AKFS_ADATA_SIZE, g_prms.mfv_adata);
-	AKFS_InitBuffer(AKFS_ADATA_SIZE, g_prms.mfv_avbuf);
+	AKFS_InitBuffer(AKFS_HDATA_SIZE, prms->fva_hdata);
+	AKFS_InitBuffer(AKFS_HDATA_SIZE, prms->fva_hvbuf);
+	AKFS_InitBuffer(AKFS_ADATA_SIZE, prms->fva_avbuf);
 
 	/* Initialize for AOC */
-	AKFS_InitAOC(&g_prms.m_aocv);
+	AKFS_InitAOC(&prms->s_aocv);
 	/* Initialize magnetic status */
-	g_prms.mi_hstatus = 0;
+	prms->i16_hstatus = 0;
 
 	return AKM_SUCCESS;
 }
 
-/*!
-  This function is called when a measurement sequence is done.
-  This fucntion writes parameters to file.
+/******************************************************************************/
+/*! This function is called when a measurement sequence is done.
+  Save parameters to a file. This function must be called when a sequential
+  measurement thread ends.
   @return The return value is #AKM_SUCCESS.
-  @param[in] path Specify a path to the settings file.
+  @param[in/out] mem A pointer to a handler.
+  @param[in] path The path to a setting file to be written. The path name
+  should be terminated with NULL.
  */
-int16 AKFS_Stop(
-	const char* path
-)
+int16 AKFS_Stop(void *mem, const char *path)
 {
-	AKMDATA(AKMDATA_DUMP, "%s: path=%s\n", __FUNCTION__, path);
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL || path == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
+	AKMDEBUG(AKMDATA_DUMP, "%s: path=%s\n", __FUNCTION__, path);
+
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
 
 	/* Write setting files to a file */
-	if (AKFS_SaveParameters(&g_prms, path) != AKM_SUCCESS) {
-		AKMERROR_STR("AKFS_Save");
+	if (AKFS_SaveParameters(prms, path) != AKM_SUCCESS) {
+		AKMERROR_STR("AKFS_SaveParameters");
 	}
 
 	return AKM_SUCCESS;
@@ -137,116 +168,48 @@ int16 AKFS_Stop(
   This function is called when new magnetometer data is available.  The output
   vector format and coordination system follow the Android definition.
   @return The return value is #AKM_SUCCESS.
-   Otherwise the return value is #AKM_FAIL.
+   Otherwise the return value is #AKM_ERROR.
+  @param[in/out] mem A pointer to a handler.
   @param[in] mag A set of measurement data from magnetometer.  X axis value
    should be in mag[0], Y axis value should be in mag[1], Z axis value should be 
    in mag[2].
   @param[in] status A status of magnetometer.  This status indicates the result
    of measurement data, i.e. overflow, success or fail, etc.
-  @param[out] vx X axis value of magnetic field vector.
-  @param[out] vy Y axis value of magnetic field vector.
-  @param[out] vz Z axis value of magnetic field vector.
-  @param[out] accuracy Accuracy of magnetic field vector.
  */
 int16 AKFS_Get_MAGNETIC_FIELD(
-	const	int16		mag[3],
+			void		*mem,
+	const   int16		mag[3],
 	const	int16		status,
-			AKFLOAT*	vx,
-			AKFLOAT*	vy,
-			AKFLOAT*	vz,
-			int16*		accuracy
+			AKFLOAT		*hx,
+			AKFLOAT		*hy,
+			AKFLOAT		*hz,
+			int16		*accuracy
 )
 {
-	int16 akret;
-	int16 aocret;
-	AKFLOAT radius;
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+	if (hx == NULL || hy == NULL || hz == NULL || accuracy == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid data pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
 
-	AKMDATA(AKMDATA_DUMP, "%s: m[0]=%d, m[1]=%d, m[2]=%d, st=%d\n",
-		__FUNCTION__, mag[0], mag[1], mag[2], status);
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
 
-	/* Decomposition */
-	/* Sensitivity adjustment, i.e. multiply ASA, is done in this function. */
-	akret = AKFS_DecompAK8975(
-		mag,
-		status,
-		&g_prms.mi_asa,
-		AKFS_HDATA_SIZE,
-		g_prms.mfv_hdata
-	);
-	if(akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
+	if (AKFS_Set_MAGNETIC_FIELD(prms, mag, status) != AKM_SUCCESS) {
+		return AKM_ERROR;
 	}
 
-	/* Adjust coordination */
-	akret = AKFS_Rotate(
-		g_prms.m_hpat,
-		&g_prms.mfv_hdata[0]
-	);
-	if (akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
-	}
-
-	/* AOC for magnetometer */
-	/* Offset estimation is done in this function */
-	aocret = AKFS_AOC(
-		&g_prms.m_aocv,
-		g_prms.mfv_hdata,
-		&g_prms.mfv_ho
-	);
-
-	/* Subtract offset */
-	/* Then, a magnetic vector, the unit is uT, is stored in mfv_hvbuf. */
-	akret = AKFS_VbNorm(
-		AKFS_HDATA_SIZE,
-		g_prms.mfv_hdata,
-		1,
-		&g_prms.mfv_ho,
-		&g_prms.mfv_hs,
-		AK8975_HSENSE_TARGET,
-		AKFS_HDATA_SIZE,
-		g_prms.mfv_hvbuf
-	);
-	if(akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
-	}
-
-	/* Averaging */
-	akret = AKFS_VbAve(
-		AKFS_HDATA_SIZE,
-		g_prms.mfv_hvbuf,
-		CSPEC_HNAVE_V,
-		&g_prms.mfv_hvec
-	);
-	if (akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
-	}
-
-	/* Check the size of magnetic vector */
-	radius = AKFS_SQRT(
-			(g_prms.mfv_hvec.u.x * g_prms.mfv_hvec.u.x) +
-			(g_prms.mfv_hvec.u.y * g_prms.mfv_hvec.u.y) +
-			(g_prms.mfv_hvec.u.z * g_prms.mfv_hvec.u.z));
-
-	if (radius > AKFS_GEOMAG_MAX) {
-		g_prms.mi_hstatus = 0;
-	} else {
-		if (aocret) {
-			g_prms.mi_hstatus = 3;
-		}
-	}
-
-	*vx = g_prms.mfv_hvec.u.x;
-	*vy = g_prms.mfv_hvec.u.y;
-	*vz = g_prms.mfv_hvec.u.z;
-	*accuracy = g_prms.mi_hstatus;
-
-	/* Debug output */
-	AKMDATA(AKMDATA_MAG, "Mag(%d):%8.2f, %8.2f, %8.2f\n",
-			*accuracy, *vx, *vy, *vz);
+	/* Success */
+	*hx = prms->fv_hvec.u.x;
+	*hy = prms->fv_hvec.u.y;
+	*hz = prms->fv_hvec.u.z;
+	*accuracy = prms->i16_hstatus;
 
 	return AKM_SUCCESS;
 }
@@ -255,83 +218,47 @@ int16 AKFS_Get_MAGNETIC_FIELD(
   This function is called when new accelerometer data is available.  The output
   vector format and coordination system follow the Android definition.
   @return The return value is #AKM_SUCCESS when function succeeds. Otherwise
-   the return value is #AKM_FAIL.
+   the return value is #AKM_ERROR.
   @param[in] acc A set of measurement data from accelerometer.  X axis value
    should be in acc[0], Y axis value should be in acc[1], Z axis value should be 
    in acc[2].
   @param[in] status A status of accelerometer.  This status indicates the result
    of acceleration data, i.e. overflow, success or fail, etc.
-  @param[out] vx X axis value of acceleration vector.
-  @param[out] vy Y axis value of acceleration vector.
-  @param[out] vz Z axis value of acceleration vector.
-  @param[out] accuracy Accuracy of acceleration vector.
-  This value is always 3.
  */
 int16 AKFS_Get_ACCELEROMETER(
+			void		*mem,
 	const   int16		acc[3],
 	const	int16		status,
-			AKFLOAT*	vx,
-			AKFLOAT*	vy,
-			AKFLOAT*	vz,
-			int16*		accuracy
+			AKFLOAT		*ax,
+			AKFLOAT		*ay,
+			AKFLOAT		*az,
+			int16		*accuracy
 )
 {
-	int16 akret;
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+	if (ax == NULL || ay == NULL || az == NULL || accuracy == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid data pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
 
-	AKMDATA(AKMDATA_DUMP, "%s: a[0]=%d, a[1]=%d, a[2]=%d, st=%d\n",
-		__FUNCTION__, acc[0], acc[1], acc[2], status);
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
 
-	/* Save data to buffer */
-	AKFS_BufShift(
-		AKFS_ADATA_SIZE,
-		1,
-		g_prms.mfv_adata
-	);
-	g_prms.mfv_adata[0].u.x = acc[0];
-	g_prms.mfv_adata[0].u.y = acc[1];
-	g_prms.mfv_adata[0].u.z = acc[2];
-
-	/* Subtract offset, adjust sensitivity */
-	/* As a result, a unit of acceleration data in mfv_avbuf is '1G = 9.8' */
-	akret = AKFS_VbNorm(
-		AKFS_ADATA_SIZE,
-		g_prms.mfv_adata,
-		1,
-		&g_prms.mfv_ao,
-		&g_prms.mfv_as,
-		AK8975_ASENSE_TARGET,
-		AKFS_ADATA_SIZE,
-		g_prms.mfv_avbuf
-	);
-	if(akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
+	if (AKFS_Set_ACCELEROMETER(prms, acc, status) != AKM_SUCCESS) {
+		return AKM_ERROR;
 	}
 
-	/* Averaging */
-	akret = AKFS_VbAve(
-		AKFS_ADATA_SIZE,
-		g_prms.mfv_avbuf,
-		CSPEC_ANAVE_V,
-		&g_prms.mfv_avec
-	);
-	if (akret == AKFS_ERROR) {
-		AKMERROR;
-		return AKM_FAIL;
-	}
-
-	/* Adjust coordination */
-	/* It is not needed. Because, the data from AK8975 driver is already
-	   follows Android coordinate system. */
-
-	*vx = g_prms.mfv_avec.u.x;
-	*vy = g_prms.mfv_avec.u.y;
-	*vz = g_prms.mfv_avec.u.z;
+	/* Success */
+	*ax = prms->fv_avec.u.x;
+	*ay = prms->fv_avec.u.y;
+	*az = prms->fv_avec.u.z;
 	*accuracy = 3;
-
-	/* Debug output */
-	AKMDATA(AKMDATA_ACC, "Acc(%d):%8.2f, %8.2f, %8.2f\n",
-			*accuracy, *vx, *vy, *vz);
 
 	return AKM_SUCCESS;
 }
@@ -342,47 +269,70 @@ int16 AKFS_Get_ACCELEROMETER(
    field vector and acceleration vector should be stored in the buffer by 
    calling #AKFS_Get_MAGNETIC_FIELD and #AKFS_Get_ACCELEROMETER.
   @return The return value is #AKM_SUCCESS when function succeeds. Otherwise
-   the return value is #AKM_FAIL.
+   the return value is #AKM_ERROR.
   @param[out] azimuth Azimuthal angle in degree.
   @param[out] pitch Pitch angle in degree.
   @param[out] roll Roll angle in degree.
   @param[out] accuracy Accuracy of orientation sensor.
  */
 int16 AKFS_Get_ORIENTATION(
-			AKFLOAT*	azimuth,
-			AKFLOAT*	pitch,
-			AKFLOAT*	roll,
-			int16*		accuracy
+			void		*mem,
+			AKFLOAT		*azimuth,
+			AKFLOAT		*pitch,
+			AKFLOAT		*roll,
+			int16		*accuracy
 )
 {
 	int16 akret;
+	AKMPRMS *prms;
+#ifdef AKM_VALUE_CHECK
+	if (mem == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid mem pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+	if (pitch== NULL || pitch == NULL || roll == NULL || accuracy == NULL) {
+		AKMDEBUG(AKMDATA_CHECK, "%s: Invalid data pointer.", __FUNCTION__);
+		return AKM_ERROR;
+	}
+#endif
+
+	/* Copy pointer */
+	prms = (AKMPRMS *)mem;
 
 	/* Azimuth calculation */
-	/* Coordination system follows the Android coordination. */
+	/* hvbuf[in] : Android coordinate, sensitivity adjusted, */
+	/*			   offset subtracted. */
+	/* avbuf[in] : Android coordinate, sensitivity adjusted, */
+	/*			   offset subtracted. */
+	/* azimuth[out]: Android coordinate and unit (degree). */
+	/* pitch  [out]: Android coordinate and unit (degree). */
+	/* roll   [out]: Android coordinate and unit (degree). */
 	akret = AKFS_Direction(
 		AKFS_HDATA_SIZE,
-		g_prms.mfv_hvbuf,
+		prms->fva_hvbuf,
 		CSPEC_HNAVE_D,
 		AKFS_ADATA_SIZE,
-		g_prms.mfv_avbuf,
+		prms->fva_avbuf,
 		CSPEC_ANAVE_D,
-		&g_prms.mf_azimuth,
-		&g_prms.mf_pitch,
-		&g_prms.mf_roll
+		&prms->f_azimuth,
+		&prms->f_pitch,
+		&prms->f_roll
 	);
 
-	if(akret == AKFS_ERROR) {
+	if (akret == AKFS_ERROR) {
 		AKMERROR;
-		return AKM_FAIL;
+		return AKM_ERROR;
 	}
-	*azimuth  = g_prms.mf_azimuth;
-	*pitch    = g_prms.mf_pitch;
-	*roll     = g_prms.mf_roll;
-	*accuracy = g_prms.mi_hstatus;
+
+	/* Success */
+	*azimuth = prms->f_azimuth;
+	*pitch   = prms->f_pitch;
+	*roll    = prms->f_roll;
+	*accuracy = 3;
 
 	/* Debug output */
-	AKMDATA(AKMDATA_ORI, "Ori(%d):%8.2f, %8.2f, %8.2f\n",
-			*accuracy, *azimuth, *pitch, *roll);
+	AKMDEBUG(AKMDATA_ORI, "Ori(?):%8.2f, %8.2f, %8.2f\n",
+			*azimuth, *pitch, *roll);
 
 	return AKM_SUCCESS;
 }

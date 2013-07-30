@@ -21,28 +21,67 @@ ifneq ($(TARGET_SIMULATOR),true)
 # hw/<SENSORS_HARDWARE_MODULE_ID>.<ro.product.board>.so
 include $(CLEAR_VARS)
 
+ifeq ($(TARGET_BOOTLOADER_BOARD_NAME),)
 LOCAL_MODULE := sensors.default
+else
+LOCAL_MODULE := sensors.$(TARGET_BOOTLOADER_BOARD_NAME)
+endif
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 
-LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_TAGS := eng
 
 LOCAL_CFLAGS := -DLOG_TAG=\"Sensors\" \
-				-Wall \
-				-DSENSORHAL_ACC_ADXL346
-#				-DSENSORHAL_ACC_KXTF9
+				-Wall -Wextra
 
 LOCAL_SRC_FILES := \
 			SensorBase.cpp \
 			InputEventReader.cpp \
 			AkmSensor.cpp \
-			sensors.cpp \
-			AdxlSensor.cpp
-#			KionixSensor.cpp
+			sensors.cpp
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl
 LOCAL_PRELINK_MODULE := false
 
+
+#
+# Specify device type
+#
+ifeq ($(AKMD_DEVICE_TYPE), 8963)
+LOCAL_CFLAGS  += -DHAL_FOR_AK8963
+
+else ifeq ($(AKMD_DEVICE_TYPE), 8975)
+LOCAL_CFLAGS  += -DHAL_FOR_AK8975
+
+else ifeq ($(AKMD_DEVICE_TYPE), 9911)
+LOCAL_CFLAGS  += -DHAL_FOR_AK09911
+
+else
+$(error AKMD_DEVICE_TYPE is not defined)
+endif
+
+#
+# Acceleration sensors 
+#
+LOCAL_CFLAGS += -DHAL_ACC_AOT
+
+ifeq ($(AKMD_SENSOR_ACC), adxl346)
+LOCAL_CFLAGS += -DHAL_ACC_ADXL346
+LOCAL_SRC_FILES += Acc_adxl346.cpp
+
+else ifeq ($(AKMD_SENSOR_ACC),kxtf9)
+LOCAL_CFLAGS += -DHAL_ACC_KXTF9
+LOCAL_SRC_FILES += Acc_kxtf9.cpp
+
+else ifeq ($(AKMD_SENSOR_ACC),dummy)
+LOCAL_CFLAGS += -DHAL_ACC_DUMMY
+LOCAL_SRC_FILES += Acc_dummy.cpp
+
+else
+$(error AKMD_SENSOR_ACC is not defined)
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 
 endif # !TARGET_SIMULATOR
+

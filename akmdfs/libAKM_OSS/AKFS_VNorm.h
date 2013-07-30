@@ -15,24 +15,31 @@
  * limitations under the License.
  *
  ******************************************************************************/
-#ifndef AKFS_INC_DIRECTION_H
-#define AKFS_INC_DIRECTION_H
+#ifndef AKFS_INC_VNORM_H
+#define AKFS_INC_VNORM_H
 
 #include "AKFS_Device.h"
 
 /***** Prototype of function **************************************************/
 AKLIB_C_API_START
-int16 AKFS_Direction(
-	const	int16		nhvec,
-	const	AKFVEC		hvec[],
-	const	int16		hnave,
-	const	int16		navec,
-	const	AKFVEC		avec[],
-	const	int16		anave,
-			AKFLOAT*	azimuth,
-			AKFLOAT*	pitch,
-			AKFLOAT*	roll
+int16 AKFS_VbNorm(
+	const	int16	ndata,
+	const	AKFVEC	vdata[],
+	const	int16	nbuf,
+	const	AKFVEC	*o,
+	const	AKFVEC	*s,
+	const	AKFLOAT	tgt,
+	const	int16	nvec,
+			AKFVEC	vvec[]
 );
+
+int16 AKFS_VbAve(
+	const	int16	nvec,
+	const	AKFVEC	vvec[],
+	const	int16	nave,
+			AKFVEC	*vave
+);
+
 AKLIB_C_API_END
 
 #endif

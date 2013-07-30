@@ -13,8 +13,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- *
- ******************************************************************************/
+ */
 #ifndef AKFS_INC_MEASURE_H
 #define AKFS_INC_MEASURE_H
 
@@ -22,49 +21,25 @@
 #include "AKFS_Compass.h"
 
 /*** Constant definition ******************************************************/
-#define AK8975_SELFTEST_MIN_X	-100
-#define AK8975_SELFTEST_MAX_X	100
-
-#define AK8975_SELFTEST_MIN_Y	-100
-#define AK8975_SELFTEST_MAX_Y	100
-
-#define AK8975_SELFTEST_MIN_Z	-1000
-#define AK8975_SELFTEST_MAX_Z	-300
-
-#define CONVERT_ACC(a)	((int)((a) * 720 / 9.8f))
-#define CONVERT_MAG(m)	((int)((m) / 0.06f))
-#define CONVERT_ORI(o)	((int)((o) * 64))
+#define AKFS_GEOMAG_MAX	70
+#define AKFS_GEOMAG_MIN	10
 
 /*** Type declaration *********************************************************/
 
 /*** Global variables *********************************************************/
 
 /*** Prototype of function ****************************************************/
-int16 AKFS_ReadAK8975FUSEROM(
-		uint8 regs[3]
+int16 AKFS_Set_MAGNETIC_FIELD(
+			AKMPRMS		*prms,
+	const	int16		mag[3],
+	const	int16		status
 );
 
-int16 AKFS_SelfTest(void);
-
-struct timespec AKFS_CalcSleep(
-	const struct timespec* end,
-	const struct timespec* start,
-	const int64_t minimum
+int16 AKFS_Set_ACCELEROMETER(
+			AKMPRMS		*prms,
+	const	int16		acc[3],
+	const	int16		status
 );
-
-int16 AKFS_GetInterval(
-		uint16*  flag,
-		int64_t* minimum
-);
-
-void AKFS_OutputResult(
-	const	uint16			flag,
-	const	AKSENSOR_DATA*	acc,
-	const	AKSENSOR_DATA*	mag,
-	const	AKSENSOR_DATA*	ori
-);
-
-void AKFS_MeasureLoop(void);
 
 #endif
 

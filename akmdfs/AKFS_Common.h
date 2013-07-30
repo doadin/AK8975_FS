@@ -29,9 +29,9 @@
 #include <conio.h>
 #include <stdarg.h>
 #include <crtdbg.h>
-#include "Android.h"
+#include <tchar.h>
+#include "../Android/Android.h"
 
-#define DBG_LEVEL	DBG_LEVEL4
 #define ENABLE_AKMDEBUG	1
 
 #else
@@ -40,104 +40,20 @@
 #include <string.h>    /* memset */
 #include <unistd.h>
 #include <stdarg.h>    /* va_list */
-#include <utils/Log.h> /* LOGV */
 #include <errno.h>     /* errno */
 
 #endif
 
+#include "AKFS_Log.h"
+
 /*** Constant definition ******************************************************/
 #define AKM_TRUE	1	/*!< Represents true */
 #define AKM_FALSE	0	/*!< Represents false */
-#define AKM_SUCCESS	1	/*!< Represents success */
-#define AKM_FAIL	0	/*!< Represents fail */
+#define AKM_SUCCESS	0	/*!< Represents success */
+#define AKM_ERROR	-1	/*!< Represents error */
 
-#undef LOG_TAG
-#define LOG_TAG "AKMD_FS"
-
-#define DBG_LEVEL0	0	/* Critical */
-#define DBG_LEVEL1	1	/* Notice */
-#define DBG_LEVEL2	2	/* Information */
-#define DBG_LEVEL3	3	/* Debug */
-#define DBG_LEVEL4	4	/* Verbose */
-
-#ifndef DBG_LEVEL
-#define DBG_LEVEL	DBG_LEVEL0
-#endif
-
-#define DATA_AREA01	0x0001
-#define DATA_AREA02	0x0002
-#define DATA_AREA03	0x0004
-#define DATA_AREA04	0x0008
-#define DATA_AREA05	0x0010
-#define DATA_AREA06	0x0020
-#define DATA_AREA07	0x0040
-#define DATA_AREA08	0x0080
-#define DATA_AREA09	0x0100
-#define DATA_AREA10	0x0200
-#define DATA_AREA11	0x0400
-#define DATA_AREA12	0x0800
-#define DATA_AREA13	0x1000
-#define DATA_AREA14	0x2000
-#define DATA_AREA15	0x4000
-#define DATA_AREA16	0x8000
-
-
-/* Debug area definition */
-#define AKMDATA_DUMP		DATA_AREA01	/*<! Dump data */
-#define AKMDATA_BDATA		DATA_AREA02	/*<! BDATA */
-#define AKMDATA_MAG			DATA_AREA03 /*<! Magnetic Field */
-#define AKMDATA_ACC			DATA_AREA04 /*<! Accelerometer */
-#define AKMDATA_ORI			DATA_AREA05 /*<! Orientation */
-#define AKMDATA_GETINTERVAL	DATA_AREA06
-#define AKMDATA_LOOP		DATA_AREA07
-#define AKMDATA_DRV			DATA_AREA08
-
-#ifndef ENABLE_AKMDEBUG
-#define ENABLE_AKMDEBUG		0	/* Eanble debug output when it is 1. */
-#endif
-
-#define OPMODE_CONSOLE		0x01
-#define OPMODE_FST			0x02
-
-/***** Debug Level Output *************************************/
-#if ENABLE_AKMDEBUG
-#define AKMDEBUG(level, format, ...) \
-    (((level) <= DBG_LEVEL) \
-	  ? (fprintf(stdout, (format), ##__VA_ARGS__)) \
-	  : ((void)0))
-#else
-#define AKMDEBUG(level, format, ...)
-#endif
-
-/***** Dbg Zone Output ***************************************/
-#if ENABLE_AKMDEBUG
-#define AKMDATA(flag, format, ...)  \
-	((((int)flag) & g_dbgzone) \
-	  ? (fprintf(stdout, (format), ##__VA_ARGS__)) \
-	  : ((void)0))
-#else
-#define AKMDATA(flag, format, ...)
-#endif
-
-/***** Log output ********************************************/
-#ifdef AKM_LOG_ENABLE
-#define AKM_LOG(format, ...)	LOGD((format), ##__VA_ARGS__)
-#else
-#define AKM_LOG(format, ...)
-#endif
-
-/***** Error output *******************************************/
-#define AKMERROR \
-	((g_opmode & OPMODE_CONSOLE) \
-	  ? (fprintf(stderr, "%s:%d Error.\n", __FUNCTION__, __LINE__)) \
-	  : (LOGE("%s:%d Error.", __FUNCTION__, __LINE__))) 
-
-#define AKMERROR_STR(api) \
-	((g_opmode & OPMODE_CONSOLE) \
-	  ? (fprintf(stderr, "%s:%d %s Error (%s).\n", \
-	  		  __FUNCTION__, __LINE__, (api), strerror(errno))) \
-	  : (LOGE("%s:%d %s Error (%s).", \
-	  		  __FUNCTION__, __LINE__, (api), strerror(errno))))
+#define OPMODE_CONSOLE		(0x01)
+#define OPMODE_FST			(0x02)
 
 /*** Type declaration *********************************************************/
 

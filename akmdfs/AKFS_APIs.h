@@ -30,39 +30,43 @@
 
 /*** Prototype of function ****************************************************/
 int16 AKFS_Init(
+			void		*mem,
 	const	AKFS_PATNO	hpat,
 	const	uint8		regs[]
 );
 
-int16 AKFS_Release(void);
+void AKFS_Release(void *mem);
 
-int16 AKFS_Start(const char* path);
+int16 AKFS_Start(void *mem, const char *path);
 
-int16 AKFS_Stop(const char* path);
+int16 AKFS_Stop(void *mem, const char *path);
 
 int16 AKFS_Get_MAGNETIC_FIELD(
-	const	int16		mag[3],
+			void		*mem,
+	const   int16		mag[3],
 	const	int16		status,
-			AKFLOAT*	vx,
-			AKFLOAT*	vy,
-			AKFLOAT*	vz,
-			int16*		accuracy
+			AKFLOAT		*hx,
+			AKFLOAT		*hy,
+			AKFLOAT		*hz,
+			int16		*accuracy
 );
 
 int16 AKFS_Get_ACCELEROMETER(
+			void		*mem,
 	const   int16		acc[3],
 	const	int16		status,
-			AKFLOAT*    vx,
-			AKFLOAT*    vy,
-			AKFLOAT*    vz,
-			int16*		accuracy
+			AKFLOAT		*ax,
+			AKFLOAT		*ay,
+			AKFLOAT		*az,
+			int16		*accuracy
 );
 
 int16 AKFS_Get_ORIENTATION(
-			AKFLOAT*	azimuth,
-			AKFLOAT*	pitch,
-			AKFLOAT*	roll,
-			int16*		accuracy
+			void		*mem,
+			AKFLOAT		*azimuth,
+			AKFLOAT		*pitch,
+			AKFLOAT		*roll,
+			int16		*accuracy
 );
 
 #endif

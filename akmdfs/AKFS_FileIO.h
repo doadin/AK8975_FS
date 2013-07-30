@@ -21,7 +21,7 @@
 /* Common include files. */
 #include "AKFS_Common.h"
 
-/* Include file for AK8975 library. */
+/* Include file for AKM OSS library. */
 #include "AKFS_Compass.h"
 
 /*** Constant definition ******************************************************/
@@ -31,9 +31,9 @@
 /*** Global variables *********************************************************/
 
 /*** Prototype of function ****************************************************/
-int16 AKFS_LoadParameters(AK8975PRMS *prms, const char* path);
+int16 AKFS_LoadParameters(AKMPRMS *prms, const char* path);
 
-int16 AKFS_SaveParameters(AK8975PRMS* prms, const char* path);
+int16 AKFS_SaveParameters(AKMPRMS* prms, const char* path);
 
 #endif
 

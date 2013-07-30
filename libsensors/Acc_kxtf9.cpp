@@ -21,10 +21,10 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <sys/select.h>
-#include <cutils/log.h>
 #include <linux/kxtf9.h>
 
-#include "KionixSensor.h"
+#include "AKMLog.h"
+#include "AccSensor.h"
 
 #define KIONIX_IOCTL_ENABLE_OUTPUT	KXTF9_IOCTL_ENABLE_OUTPUT
 #define KIONIX_IOCTL_DISABLE_OUTPUT	KXTF9_IOCTL_DISABLE_OUTPUT
@@ -35,10 +35,13 @@
 
 /*****************************************************************************/
 
-KionixSensor::KionixSensor()
+AccSensor::AccSensor()
     : SensorBase(DIR_DEV, INPUT_NAME_ACC),
       mEnabled(0),
-      mDelay(-1),
+      mFusionEnabled(0),
+      mDelayCur(-1),
+      mDelayAcc(-1),
+      mDelayFus(-1),
       mInputReader(32),
       mHasPendingEvent(false)
 {
@@ -50,18 +53,21 @@ KionixSensor::KionixSensor()
 	open_device();
 }
 
-KionixSensor::~KionixSensor() {
+AccSensor::~AccSensor() {
     if (mEnabled) {
-        setEnable(0, 0);
+        setEnable(ID_A, 0);
+    }
+    if (mFusionEnabled) {
+        setEnable(ID_OR, 0);
     }
 
 	close_device();
 }
 
-int KionixSensor::setInitialState() {
+int AccSensor::setInitialState() {
     struct input_absinfo absinfo;
 
-	if (mEnabled) {
+	if (mEnabled | mFusionEnabled) {
     	if (!ioctl(data_fd, EVIOCGABS(EVENT_TYPE_ACCEL_X), &absinfo)) {
 			mPendingEvent.acceleration.x = KIONIX_UNIT_CONVERSION(absinfo.value);
 		}
@@ -75,99 +81,129 @@ int KionixSensor::setInitialState() {
     return 0;
 }
 
-bool KionixSensor::hasPendingEvents() const {
+bool AccSensor::hasPendingEvents() const {
     return mHasPendingEvent;
 }
 
-int KionixSensor::setEnable(int32_t handle, int enabled) {
+int AccSensor::setEnable(int32_t handle, int enabled) {
+	int flags = enabled ? 1 : 0;
     int err = 0;
 	int opDone = 0;
 
 	/* handle check */
-	if (handle != ID_A) {
-		LOGE("KionixSensor: Invalid handle (%d)", handle);
+	if (handle == ID_A) {
+		if (flags) {
+			if (!mFusionEnabled && !mEnabled) {
+				err = ioctl(dev_fd, KIONIX_IOCTL_ENABLE_OUTPUT);
+				opDone = 1;
+			}
+		} else {
+			if (!mFusionEnabled && mEnabled) {
+				err = ioctl(dev_fd, KIONIX_IOCTL_DISABLE_OUTPUT);
+				opDone = 1;
+			}
+		}
+	} else if (
+			(handle == ID_OR) ||
+			(handle == ID_RV)) {
+		if (flags) {
+			if (!mFusionEnabled && !mEnabled) {
+				err = ioctl(dev_fd, KIONIX_IOCTL_ENABLE_OUTPUT);
+				opDone = 1;
+			}
+		} else {
+			if (mFusionEnabled && !mEnabled) {
+				err = ioctl(dev_fd, KIONIX_IOCTL_DISABLE_OUTPUT);
+				opDone = 1;
+			}
+		}
+	} else {
+		ALOGE("AccSensor: Invalid handle (%d)", handle);
 		return -EINVAL;
 	}
 
-	if (mEnabled <= 0) {
-		if (enabled) {
-			err = ioctl(dev_fd, KIONIX_IOCTL_ENABLE_OUTPUT);
-			opDone = 1;
-		}
-	} else if (mEnabled == 1) {
-		if (!enabled) {
-			err = ioctl(dev_fd, KIONIX_IOCTL_DISABLE_OUTPUT);
-			opDone = 1;
-		}
-	}
 	if (err != 0) {
-		LOGE("KionixSensor: IOCTL failed (%s)", strerror(errno));
+		ALOGE("AccSensor: IOCTL failed (%s)", strerror(errno));
 		return err;
 	}
 	if (opDone) {
-		LOGD("KionixSensor: Control set %d", enabled);
+		ALOGD("AccSensor: Control set %d", enabled);
 		setInitialState();
 	}
 
-	if (enabled) {
-		mEnabled++;
-		if (mEnabled > 32767) mEnabled = 32767;
-	} else {
-		mEnabled--;
-		if (mEnabled < 0) mEnabled = 0;
+	if (handle == ID_A) {
+		mEnabled = flags;
+		ALOGD("AccSensor: mEnabled = %d", mEnabled);
+	} else if (
+			(handle == ID_OR) ||
+			(handle == ID_RV)) {
+		mFusionEnabled = flags;
+		ALOGD("AccSensor: mFusionEnabled = %d", mFusionEnabled);
 	}
-	LOGD("KionixSensor: mEnabled = %d", mEnabled);
 
     return err;
 }
 
-int KionixSensor::setDelay(int32_t handle, int64_t delay_ns)
+int AccSensor::setDelay(int32_t handle, int64_t delay_ns)
 {
 	int err = 0;
 	int ms; 
 
 	/* handle check */
-	if (handle != ID_A) {
-		LOGE("KionixSensor: Invalid handle (%d)", handle);
+	if (handle == ID_A) {
+		mDelayAcc = delay_ns;
+	} else if (
+			(handle == ID_OR) ||
+			(handle == ID_RV)) {
+		mDelayFus = delay_ns;
+	} else {
+		ALOGE("AccSensor: Invalid handle (%d)", handle);
 		return -EINVAL;
 	}
 
-	if (mDelay != delay_ns) {
+	/* Choose interval */
+	if (mFusionEnabled & mEnabled) {
+		/* If Acc and Fusion is enabled, choose shorter one */
+		delay_ns = ((mDelayAcc < mDelayFus) ? (mDelayAcc) : (mDelayFus));
+	} else if (mFusionEnabled & !mEnabled) {
+		/* If only Fusion is enabled, choose fusion */
+		delay_ns = mDelayFus;
+	} else if (!mFusionEnabled & mEnabled) {
+		/* If only Acc is enabled, choose acc */
+		delay_ns = mDelayAcc;
+	} else {
+		ALOGE("AccSensor: delay setting is ignored (%lld)", delay_ns);
+	}
+
+	if (mDelayCur != delay_ns) {
 		ms = delay_ns / 1000000;
         if (ioctl(dev_fd, KIONIX_IOCTL_UPDATE_ODR, &ms)) {
 			return -errno;
 		}
-		mDelay = delay_ns;
+		mDelayCur = delay_ns;
+		ALOGD("AccSensor: Control set delay %f ms.", delay_ns/1000000.0f);
 	}
 
 	return err;
 }
 
-int64_t KionixSensor::getDelay(int32_t handle)
+int AccSensor::readEvents(sensors_event_t* data, int count)
 {
-	return (handle == ID_A) ? mDelay : 0;
-}
-
-int KionixSensor::getEnable(int32_t handle)
-{
-	return (handle == ID_A) ? mEnabled : 0;
-}
-
-int KionixSensor::readEvents(sensors_event_t* data, int count)
-{
-    if (count < 1)
+    if (count < 1) {
         return -EINVAL;
+	}
 
     if (mHasPendingEvent) {
         mHasPendingEvent = false;
         mPendingEvent.timestamp = getTimestamp();
         *data = mPendingEvent;
-        return mEnabled ? 1 : 0;
+		return (mEnabled | mFusionEnabled) ? 1 : 0;
     }
 
     ssize_t n = mInputReader.fill(data_fd);
-    if (n < 0)
+    if (n < 0) {
         return n;
+	}
 
     int numEventReceived = 0;
     input_event const* event;
@@ -185,13 +221,13 @@ int KionixSensor::readEvents(sensors_event_t* data, int count)
             }
         } else if (type == EV_SYN) {
             mPendingEvent.timestamp = timevalToNano(event->time);
-            if (mEnabled) {
+			if (mEnabled | mFusionEnabled) {
                 *data++ = mPendingEvent;
                 count--;
                 numEventReceived++;
             }
         } else {
-            LOGE("KionixSensor: unknown event (type=%d, code=%d)",
+            ALOGE("AccSensor: unknown event (type=%d, code=%d)",
                     type, event->code);
         }
         mInputReader.next();
