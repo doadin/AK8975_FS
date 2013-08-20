@@ -37,7 +37,7 @@
 #define AKM_SENSITIVITY			0.6f
 #define AKM_ST_ERROR(st)		(((st)&0x09) != 0x01)
 #define AKM_HDATA_CONVERTER(data, asa)			\
-	(AKFLOAT)(((data)*(((asa)/256.0f) + 0.5f)))
+	(AKFLOAT)(((data)*(((asa)/128.0f) + 1.0f)))
 
 #endif
 
