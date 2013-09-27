@@ -1,0 +1,63 @@
+diff --git a/AndroidBoard.mk b/AndroidBoard.mk
+index 25fc581..128475e 100644
+--- a/AndroidBoard.mk
++++ b/AndroidBoard.mk
+@@ -1,6 +1,8 @@
+ LOCAL_PATH := $(call my-dir)
+ include $(CLEAR_VARS)
+ 
++TARGET_PREBUILT_KERNEL=${ANDROID_BUILD_TOP}/tegra/arch/arm/boot/zImage
++
+ ifeq ($(TARGET_PREBUILT_KERNEL),)
+ TARGET_PREBUILT_KERNEL := $(LOCAL_PATH)/kernel
+ endif
+diff --git a/device_base.mk b/device_base.mk
+index 8d09cc8..b300878 100644
+--- a/device_base.mk
++++ b/device_base.mk
+@@ -87,7 +87,8 @@ PRODUCT_PACKAGES := \
+     hcitool \
+     bttest \
+     com.android.future.usb.accessory \
+-    whisperd
++    whisperd \
++    akmdfs
+ 
+ PRODUCT_CHARACTERISTICS := tablet
+ 
+diff --git a/init.stingray.rc b/init.stingray.rc
+index dda35e8..8b42412 100644
+--- a/init.stingray.rc
++++ b/init.stingray.rc
+@@ -80,8 +80,20 @@ on boot
+     chmod 660 /dev/l3g4200d
+     chown compass compass /dev/akm8975_dev
+     chmod 660 /dev/akm8975_dev
+-    chown compass compass /dev/akm8975_aot
+-    chmod 660 /dev/akm8975_aot
++	chown compass compass /sys/class/compass/akm8975/enable_acc
++	chown compass compass /sys/class/compass/akm8975/enable_mag
++	chown compass compass /sys/class/compass/akm8975/enable_fusion
++	chown compass compass /sys/class/compass/akm8975/delay_acc
++	chown compass compass /sys/class/compass/akm8975/delay_mag
++	chown compass compass /sys/class/compass/akm8975/delay_fusion
++	chown compass compass /sys/class/compass/akm8975/accel
++	chmod 660 /sys/class/compass/akm8975/enable_acc
++	chmod 660 /sys/class/compass/akm8975/enable_mag
++	chmod 660 /sys/class/compass/akm8975/enable_fusion
++	chmod 660 /sys/class/compass/akm8975/delay_acc
++	chmod 660 /sys/class/compass/akm8975/delay_mag
++	chmod 660 /sys/class/compass/akm8975/delay_fusion
++	chmod 220 /sys/class/compass/akm8975/accel
+ 
+ # light
+     chown system system /sys/class/leds/notification-led/brightness
+@@ -163,7 +175,7 @@ on boot
+     chmod 0400 /sys/kernel/debug/binder/state
+ 
+ # Ecompass daemon
+-service akmd2 /system/bin/akmd2
++service akmd2 /system/bin/akmdfs -m 1
+     class late_start
+     user compass
+     group compass misc input
