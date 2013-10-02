@@ -1,4 +1,4 @@
-Compass Control Program for AK8975, AK8973 and AK09911.
+AK8975/AK8963/AK09911 Sensor Daemon for Android.
 =========
 Compass Control Program for Android Open Source Project
 
