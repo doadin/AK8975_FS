@@ -1,4 +1,4 @@
-AK8975_FS
+Compass Control Program for AK8975, AK8973 and AK09911.
 =========
 Compass Control Program for Android Open Source Project
 
