@@ -1,4 +1,4 @@
-/* drivers/misc/akm8963.c - akm8963 compass driver
+/* drivers/input/misc/akm09911.c - akm09911 compass driver
  *
  * Copyright (C) 2007-2008 HTC Corporation.
  * Author: Hou-Kun Chen <houkun.chen@gmail.com>
@@ -17,7 +17,7 @@
 /*#define DEBUG*/
 /*#define VERBOSE_DEBUG*/
 
-#include <linux/akm8963.h>
+#include <linux/akm09911.h>
 #include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/freezer.h>
@@ -1354,34 +1354,35 @@ static int akm_compass_resume(struct device *dev)
 	return 0;
 }
 
-static int akm8963_i2c_check_device(
+static int akm09911_i2c_check_device(
 	struct i2c_client *client)
 {
-	/* AK8963 specific function */
+	/* AK09911 specific function */
 	struct akm_compass_data *akm = i2c_get_clientdata(client);
 	int err;
 
-	akm->sense_info[0] = AK8963_REG_WIA;
+	akm->sense_info[0] = AK09911_REG_WIA1;
 	err = akm_i2c_rxdata(client, akm->sense_info, AKM_SENSOR_INFO_SIZE);
 	if (err < 0)
 		return err;
 
 	/* Set FUSE access mode */
-	err = AKECS_SetMode(akm, AK8963_MODE_FUSE_ACCESS);
+	err = AKECS_SetMode(akm, AK09911_MODE_FUSE_ACCESS);
 	if (err < 0)
 		return err;
 
-	akm->sense_conf[0] = AK8963_FUSE_ASAX;
+	akm->sense_conf[0] = AK09911_FUSE_ASAX;
 	err = akm_i2c_rxdata(client, akm->sense_conf, AKM_SENSOR_CONF_SIZE);
 	if (err < 0)
 		return err;
 
-	err = AKECS_SetMode(akm, AK8963_MODE_POWERDOWN);
+	err = AKECS_SetMode(akm, AK09911_MODE_POWERDOWN);
 	if (err < 0)
 		return err;
 
 	/* Check read data */
-	if (akm->sense_info[0] != AK8963_WIA_VALUE) {
+	if ((akm->sense_info[0] != AK09911_WIA1_VALUE) ||
+			(akm->sense_info[1] != AK09911_WIA2_VALUE)){
 		dev_err(&client->dev,
 			"%s: The device is not AKM Compass.", __func__);
 		return -ENXIO;
@@ -1392,7 +1393,7 @@ static int akm8963_i2c_check_device(
 
 int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
-	struct akm8963_platform_data *pdata;
+	struct akm09911_platform_data *pdata;
 	int err = 0;
 	int i;
 
@@ -1455,7 +1456,7 @@ int akm_compass_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	/* set client data */
 	i2c_set_clientdata(client, s_akm);
 	/* check connection */
-	err = akm8963_i2c_check_device(client);
+	err = akm09911_i2c_check_device(client);
 	if (err < 0)
 		goto exit2;
 
