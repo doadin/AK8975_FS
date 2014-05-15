@@ -1,4 +1,4 @@
-AK8975_FS
+AK8975/AK8963/AK09911 Sensor Daemon for Android.
 =========
 Compass Control Program for Android Open Source Project
 
